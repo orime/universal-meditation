@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --space-dark: 231 15% 9%;
+    --space-light: 235 12% 27%;
+    --stardust: 230 100% 95%;
+    --golden: 51 100% 50%;
+    --golden-light: 51 100% 70%;
+  }
+
+  @font-face {
+    font-family: 'Orbitron';
+    src: url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+  }
+
+  @font-face {
+    font-family: 'Space Mono';
+    src: url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
+  }
+}
+
+@layer components {
+  .font-orbitron {
+    font-family: 'Orbitron', sans-serif;
+  }
+  
+  .font-space-mono {
+    font-family: 'Space Mono', monospace;
+  }
+  
+  .bg-space-dark {
+    @apply bg-[#0B0E23];
+  }
+  
+  .bg-space-light {
+    @apply bg-[#4E3D8E];
+  }
+  
+  .text-stardust {
+    @apply text-[#E6E6FA];
+  }
+  
+  .text-golden {
+    @apply text-[#FFD700];
+  }
+  
+  .bg-golden {
+    @apply bg-[#FFD700];
+  }
+  
+  .bg-golden-light {
+    @apply bg-[#FFEE80];
+  }
+  
+  @keyframes float-in {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  .animate-float-in {
+    animation: float-in 1.5s ease-out forwards;
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 1s ease-in-out;
+  }
+}
