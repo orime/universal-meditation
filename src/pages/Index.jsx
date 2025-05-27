@@ -1,18 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMeditationStore } from '../stores/meditation-store';
 import SimpleCosmicBackground from '../components/cosmic/SimpleCosmicBackground';
 import { Howl } from 'howler';
-
-// 预加载音频文件
-const preloadAudio = new Howl({
-  src: ['/audio/充满希望的背景音乐.mp3'],
-  preload: true,
-  volume: 0,
-  loop: false,
-  html5: true,
-  onload: () => console.log('音频预加载完成')
-});
 
 const Index = () => {
   const [worry, setWorry] = useState('');
@@ -20,13 +10,27 @@ const Index = () => {
   const navigate = useNavigate();
   const setUserWorry = useMeditationStore(state => state.setWorry);
   const startMeditation = useMeditationStore(state => state.startMeditation);
+  const preloadAudioRef = useRef(null);
 
   // 页面加载时预加载音频
   useEffect(() => {
-    preloadAudio.load();
+    // 每次组件挂载时创建新的预加载实例
+    preloadAudioRef.current = new Howl({
+      src: ['/audio/充满希望的背景音乐.mp3'],
+      preload: true,
+      volume: 0,
+      loop: false,
+      html5: true,
+      onload: () => console.log('音频预加载完成')
+    });
+    
+    preloadAudioRef.current.load();
     
     return () => {
-      preloadAudio.unload();
+      if (preloadAudioRef.current) {
+        preloadAudioRef.current.unload();
+        preloadAudioRef.current = null;
+      }
     };
   }, []);
 
@@ -41,17 +45,19 @@ const Index = () => {
     startMeditation();
     
     // 如果音频已加载完成，直接导航到冥想页面
-    if (preloadAudio.state() === 'loaded') {
+    if (preloadAudioRef.current && preloadAudioRef.current.state() === 'loaded') {
       navigate('/meditation');
     } else {
       // 否则等待音频加载完成
-      preloadAudio.once('load', () => {
-        navigate('/meditation');
-      });
+      if (preloadAudioRef.current) {
+        preloadAudioRef.current.once('load', () => {
+          navigate('/meditation');
+        });
+      }
       
       // 如果3秒后还未加载完成，也导航过去
       setTimeout(() => {
-        if (preloadAudio.state() !== 'loaded') {
+        if (!preloadAudioRef.current || preloadAudioRef.current.state() !== 'loaded') {
           console.log('音频加载超时，继续导航');
           navigate('/meditation');
         }

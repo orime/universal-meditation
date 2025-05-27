@@ -1,20 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMeditationStore } from '../stores/meditation-store';
 import CosmicScene from '../components/cosmic/CosmicScene';
 import MeditationGuide from '../components/meditation/MeditationGuide';
 import MusicController from '../components/meditation/MusicController';
 import { Howl } from 'howler';
-
-// 使用本地音乐文件
-const meditationAudio = new Howl({
-  src: ['/audio/充满希望的背景音乐.mp3'],
-  loop: true,
-  volume: 0.6,
-  html5: true,
-  preload: true,
-  autoplay: false, // 不自动播放，等用户进入页面后手动触发
-});
 
 // 优化的时序设置
 const SCALE_TIMINGS = {
@@ -40,14 +30,37 @@ export default function Meditation() {
   const [currentGuide, setCurrentGuide] = useState('earth');
   const [isCompleted, setIsCompleted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef(null);
 
-  // 初始化音频和第一阶段
+  // 初始化音频
   useEffect(() => {
-    // 准备音频，但不自动播放
-    meditationAudio.once('load', () => {
+    // 创建新的Howl实例
+    audioRef.current = new Howl({
+      src: ['/audio/充满希望的背景音乐.mp3'],
+      loop: true,
+      volume: 0.6,
+      html5: true,
+      preload: true,
+      autoplay: false, // 不自动播放，等用户进入页面后手动触发
+    });
+
+    // 音频加载完成的回调
+    audioRef.current.once('load', () => {
       console.log('音频加载完成');
     });
-    
+
+    // 组件卸载时清理音频资源
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.stop();
+        audioRef.current.unload();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  // 初始化第一阶段和播放音乐
+  useEffect(() => {
     // 地球 -> 太阳系
     const earthTimer = setTimeout(() => {
       setScale('solar');
@@ -55,9 +68,9 @@ export default function Meditation() {
     }, SCALE_TIMINGS.earth);
 
     // 开启冥想旅程时自动播放音乐
-    if (!isPlaying) {
+    if (audioRef.current && !isPlaying) {
       try {
-        meditationAudio.play();
+        audioRef.current.play();
         setIsPlaying(true);
       } catch (error) {
         console.log('音频自动播放失败:', error);
@@ -65,26 +78,32 @@ export default function Meditation() {
     }
 
     return () => {
-      meditationAudio.stop();
-      setIsPlaying(false);
+      if (audioRef.current) {
+        audioRef.current.stop();
+        setIsPlaying(false);
+      }
       clearTimeout(earthTimer);
     };
   }, [setScale]);
 
   // 音乐播放状态监听
   useEffect(() => {
+    if (!audioRef.current) return;
+    
     const updatePlayingState = () => {
-      setIsPlaying(meditationAudio.playing());
+      setIsPlaying(audioRef.current.playing());
     };
     
-    meditationAudio.on('play', updatePlayingState);
-    meditationAudio.on('pause', updatePlayingState);
-    meditationAudio.on('stop', updatePlayingState);
+    audioRef.current.on('play', updatePlayingState);
+    audioRef.current.on('pause', updatePlayingState);
+    audioRef.current.on('stop', updatePlayingState);
     
     return () => {
-      meditationAudio.off('play', updatePlayingState);
-      meditationAudio.off('pause', updatePlayingState);
-      meditationAudio.off('stop', updatePlayingState);
+      if (audioRef.current) {
+        audioRef.current.off('play', updatePlayingState);
+        audioRef.current.off('pause', updatePlayingState);
+        audioRef.current.off('stop', updatePlayingState);
+      }
     };
   }, []);
 
@@ -129,12 +148,17 @@ export default function Meditation() {
               
               // 3秒后返回首页
               setTimeout(() => {
-                meditationAudio.fade(meditationAudio.volume(), 0, 2000);
-                setTimeout(() => {
-                  meditationAudio.stop();
+                if (audioRef.current) {
+                  audioRef.current.fade(audioRef.current.volume(), 0, 2000);
+                  setTimeout(() => {
+                    audioRef.current.stop();
+                    reset();
+                    navigate('/');
+                  }, 2000);
+                } else {
                   reset();
                   navigate('/');
-                }, 2000);
+                }
               }, 3000);
               
               return prev;
@@ -153,10 +177,12 @@ export default function Meditation() {
 
   // 切换音乐播放状态
   const toggleMusic = () => {
-    if (meditationAudio.playing()) {
-      meditationAudio.pause();
+    if (!audioRef.current) return;
+    
+    if (audioRef.current.playing()) {
+      audioRef.current.pause();
     } else {
-      meditationAudio.play();
+      audioRef.current.play();
     }
     setIsPlaying(!isPlaying);
   };
